@@ -1,0 +1,4 @@
+{"login": "antfu", "interval": "3d"}
+{"login": "alexellis", "interval": "3d"}
+{"login": "bahmutov", "interval": "3d"}
+{"login": "jaywcjlove", "interval": "3d"}
