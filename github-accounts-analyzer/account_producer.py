@@ -15,9 +15,15 @@ class AccountProducer():
     def load_file(self, path: str):
         with open(path) as file:
             data = file.readlines()
-            data = [json.loads(d) for d in data]
-        logger.debug(data)
-        return data
+            # data = [json.loads(d) for d in data]
+            result = []
+            for d in data:
+                try:
+                    result.append(json.loads(d))
+                except json.JSONDecodeError:
+                    logger.error(f'not json string: {d}')
+        logger.debug(result)
+        return result
 
     def produce(self, path):
         data = self.load_file(path)
