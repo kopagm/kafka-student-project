@@ -34,7 +34,6 @@ class GitHubService():
 
 
 # if __name__ == '__main__':
-#     github_token = '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'
 #     github_api = Github(github_token)
 #     github_service = GitHubService(github_api, CommitModel)
 #     result = github_service.pollCommits('kopagm', datetime(2021, 11, 20).isoformat())
