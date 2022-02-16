@@ -1,0 +1,125 @@
+create or replace stream sd1 (
+       commiter STRUCT<login VARCHAR>,
+       author STRUCT<login VARCHAR>,
+       url VARCHAR key,
+       sha VARCHAR,
+       committer_date VARCHAR,
+       author_date VARCHAR,
+       repository STRUCT<
+              full_name VARCHAR,
+              language VARCHAR,
+              stargazers_count INT,
+              forks_count INT>
+       ) with (kafka_topic='test_commits', value_format='json', partitions=1);
+
+create or replace stream sd2 as
+       select
+       commiter->login as commiter_login,
+       author->login as author_login,
+       url,
+       sha,
+       committer_date,
+       author_date,
+       repository->full_name as repository_full_name,
+       repository->language as repository_language,
+       repository->stargazers_count as repository_stargazers_count,
+       repository->forks_count as repository_forks_count
+       from sd1;
+
+create or replace stream sd3 as
+       select
+       author->login as author_login,
+       url,
+       sha,
+       author_date,
+       repository->language as repository_language,
+       repository->stargazers_count as repository_stargazers_count
+       from sd1;
+
+-- create or replace table t1 (
+--        commiter->login VARCHAR as commiter_login,
+--        author->login VARCHAR as author_login,
+--        url VARCHAR primary KEY,
+--        sha VARCHAR,
+--        committer_date VARCHAR,
+--        author_date VARCHAR,
+--        repository->full_name VARCHAR as repository_full_name,
+--        repository->language VARCHAR as repository_language,
+--        repository->stargazers_count INT as repository_stargazers_count,
+--        repository->forks_count INT as repository_forks_count
+--        ) with (kafka_topic='test_commits', value_format='json', partitions=1);
+
+create or replace table t3 (
+       commiter_login VARCHAR,
+       author_login VARCHAR,
+       url VARCHAR primary KEY,
+       sha VARCHAR,
+       committer_date VARCHAR,
+       author_date VARCHAR,
+       repository_full_name VARCHAR,
+       repository_language VARCHAR,
+       repository_stargazers_count INT,
+       repository_forks_count INT
+       ) with (kafka_topic='SD2', value_format='json', partitions=1);
+
+select timestamptostring(rowtime, 'yyyy-MM-dd') as dt, * from T3 emit changes;
+select AUTHOR_LOGIN, count(*) as commit_count from t3 group by AUTHOR_LOGIN emit changes;
+select REPOSITORY_LANGUAGE, count(1) from t3 group by REPOSITORY_LANGUAGE emit changes;
+
+create table t4 as select AUTHOR_LOGIN, count(*) as commit_count from t3 group by AUTHOR_LOGIN emit changes;
+select * from t4 emit changes;
+
+create or replace stream sd4 (
+       author_login VARCHAR key,
+       COMMIT_COUNT BIGINT
+       ) with (kafka_topic='T4', value_format='json', partitions=1);
+
+create or replace stream SD5 (
+       author_login VARCHAR,
+       COMMIT_COUNT BIGINT key
+       ) with (kafka_topic='T4', value_format='json', partitions=1);
+
+create table t1 as
+       select
+       url primary key,
+       count(1)
+       from sd2
+       group by url;
+
+create table t1 as
+       select
+       url primary key,
+       author_login,
+       repository_language,
+       repository_stargazers_count
+       from TEST_COMMITS_DATA2;
+
+
+-- create or replace stream COMMITS_DATA_2STR as
+--     select
+--     repo,
+--     commit_id,
+--     commit->name as commit_person_name,
+--     commit->email as commit_person_email,
+--     commit->date as commit_date,
+--     committer->name as committer_name,
+--     committer->email as committer_email,
+--     committer->date as committer_date,
+--     owner->login as owner_login,
+--     contributor,
+--     language
+-- from COMMITS_DATA_1STR;
+
+-- commit = {
+-- 'commiter': {'login': commit.committer.login},
+-- 'author': {'login': commit.author.login},
+-- 'url': commit.url,
+-- 'sha': commit.sha,
+-- 'committer_date': commit.commit.committer.date.isoformat(),
+-- 'author_date': commit.commit.author.date.isoformat(),
+-- 'repository': {
+--        'full_name': repository.full_name,
+--        'language': repository.language,
+--        'stargazers_count': repository.stargazers_count,
+--        'forks_count': repository.forks_count}
+-- }
