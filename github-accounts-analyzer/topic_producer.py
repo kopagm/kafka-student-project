@@ -25,8 +25,7 @@ class TopicProducer():
     def flush(self):
         self.producer.flush()
 
-if __name__ == '__main__':
-    p = TopicProducer(producer_conf, topic='test')
+# if __name__ == '__main__':
+    # p = TopicProducer(producer_conf, topic='test')
     # p.produce('test1')
     # p.produce({'a': 'a'})
- 
