@@ -13,8 +13,10 @@ create or replace stream st1 (
               language VARCHAR,
               stargazers_count INT,
               forks_count INT>
-       ) with (kafka_topic='commits', value_format='json', partitions=1,
-           timestamp='author_date', timestamp_format='yyyy-MM-dd''T''HH:mm:ss');
+       ) with (kafka_topic='commits', value_format='json', partitions=1
+       -- change timestamp
+           , timestamp='author_date', timestamp_format='yyyy-MM-dd''T''HH:mm:ss'
+           );
 
 -- destructured stream
 create or replace stream st3 as
@@ -36,9 +38,57 @@ create or replace table tdd1 as
        LATEST_BY_OFFSET(repository_language) as language
        from st3 group by URL emit changes;
 
--- daily commits number 
-create or replace table day_commits as 
-       select timestamptostring(rowtime, 'yyyy-MM-dd') as day, count(1) as commits 
+-- or deduplicated table with topic
+create or replace table tdd2 (
+       url VARCHAR primary key,
+       author_login VARCHAR,
+       author_date VARCHAR,
+       repository_language VARCHAR)
+       with (kafka_topic='ST3', value_format='json');
+
+-- stream from deduplicated table
+create or replace stream SDD1 (
+       login VARCHAR,
+       url VARCHAR key,
+       date VARCHAR,
+       language VARCHAR
+       ) with (kafka_topic='TDD1', value_format='json', partitions=1
+       -- change timestamp
+       --     , timestamp='author_date', timestamp_format='yyyy-MM-dd''T''HH:mm:ss'
+           );
+
+-- daily total commits (by day)
+create or replace table daily_commits as 
+       select timestamptostring(rowtime, 'yyyy-MM-dd') as day,
+       count(1) as commits 
        from TDD1 group by timestamptostring(rowtime, 'yyyy-MM-dd') emit changes;
 
+-- total commiters
+create or replace table commiters as 
+       select timestamptostring(rowtime, 'yyyy-MM-dd') as day,
+       count_distinct(login) as commiters
+       from SDD1
+       group by timestamptostring(rowtime, 'yyyy-MM-dd') emit changes;
+
+-- total commits by login
+create or replace table commits_by_login as 
+       select login,
+       count(1) as commits
+       from TDD1
+       group by login emit changes;
+
+-- total commits by day, login
+create or replace table commiters_by_day_login as 
+       select timestamptostring(rowtime, 'yyyy-MM-dd'), login,
+       count(1) as commits
+       from TDD1
+       group by timestamptostring(rowtime, 'yyyy-MM-dd'), login emit changes;
+
+-- total commits by language
+create or replace table languages as 
+       select language,
+       count(1) as commits 
+       from TDD1 group by language emit changes;
+
+-- top 5 commiters number
 
