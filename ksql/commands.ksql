@@ -92,3 +92,10 @@ create or replace table languages as
 
 -- top 5 commiters number
 
+
+-- create sink connector
+CREATE SINK CONNECTOR IF NOT EXISTS filesink WITH(
+       'connector.class'='FileStreamSinkConnector',
+       'tasks.max'=1,
+       'file'='\user\file.txt',
+       'topics'='COMMITS_BY_LOGIN');
